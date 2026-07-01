@@ -1,63 +1,71 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pokédex</title>
-  <script>
-    // Aplica el tema guardado ANTES de que el navegador pinte, evita el flash blanco
-    if (localStorage.getItem("tema") === "oscuro") {
-      document.documentElement.classList.add("dark");
-    }
-  </script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = { darkMode: "class" }
-  </script>
-</head>
-<body class="bg-slate-100 dark:bg-slate-900 min-h-screen p-6 transition-colors duration-300">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pokédex</title>
+    <script>
+      if (localStorage.getItem("tema") === "oscuro") {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = { darkMode: "class" };
+    </script>
+  </head>
+  <body
+    class="bg-slate-100 dark:bg-slate-900 min-h-screen p-6 transition-colors duration-300"
+  >
+    <div class="max-w-4xl mx-auto flex items-center justify-between mb-6">
+      <h1 class="text-3xl font-bold text-slate-800 dark:text-slate-100">
+        Pokédex
+      </h1>
+      <button
+        id="btn-tema"
+        class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-medium transition-colors duration-200"
+      >
+        🌙 Modo oscuro
+      </button>
+    </div>
 
-  <!-- Barra superior: título + botón tema -->
-  <div class="max-w-4xl mx-auto flex items-center justify-between mb-6">
-    <h1 class="text-3xl font-bold text-slate-800 dark:text-slate-100">Pokédex</h1>
-    <button id="btn-tema"
-            class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600
-                   bg-white dark:bg-slate-800
-                   text-slate-700 dark:text-slate-200
-                   hover:bg-slate-200 dark:hover:bg-slate-700
-                   text-sm font-medium transition-colors duration-200">
-      🌙 Modo oscuro
-    </button>
-  </div>
+    <div class="max-w-md mx-auto flex gap-2 mb-6">
+      <input
+        id="buscador"
+        type="text"
+        placeholder="Nombre o número (#25)…"
+        class="flex-1 p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+      />
+      <button
+        id="btn-buscar"
+        class="px-4 py-2 bg-yellow-400 dark:bg-yellow-500 font-semibold rounded-lg hover:bg-yellow-500 dark:hover:bg-yellow-400 text-slate-900"
+      >
+        Buscar
+      </button>
+    </div>
+    <div id="spinner" class="hidden flex justify-center my-4">
+      <div
+        class="w-8 h-8 border-4 border-slate-300 dark:border-slate-600 border-t-yellow-500 rounded-full animate-spin"
+      ></div>
+    </div>
 
-  <!-- Buscador con botón -->
-  <div class="max-w-md mx-auto flex gap-2 mb-6">
-    <input id="buscador" type="text" placeholder="Nombre o número (#25)…"
-           class="flex-1 p-2 rounded-lg border border-slate-300 dark:border-slate-600
-                  bg-white dark:bg-slate-800
-                  text-slate-800 dark:text-slate-100
-                  placeholder-slate-400 dark:placeholder-slate-500
-                  focus:outline-none focus:ring-2 focus:ring-yellow-400">
-    <button id="btn-buscar"
-            class="px-4 py-2 bg-yellow-400 dark:bg-yellow-500 font-semibold rounded-lg
-                   hover:bg-yellow-500 dark:hover:bg-yellow-400 text-slate-900">
-      Buscar
-    </button>
-  </div>
+    <div
+      id="mensaje"
+      class="hidden text-center text-red-600 dark:text-red-400 font-medium my-4"
+    ></div>
 
-  <!-- El JS pintará las tarjetas aquí -->
-  <div id="resultado" class="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-4xl mx-auto"></div>
-
-  <!-- Cargar más -->
-  <div class="text-center mt-6">
-    <button id="cargar-mas"
-            class="px-6 py-2 bg-slate-700 dark:bg-slate-600 text-white font-semibold
-                   rounded-lg hover:bg-slate-800 dark:hover:bg-slate-500 transition-colors">
-      Cargar más
-    </button>
-  </div>
-
-  <script src="js/app.js"></script>
-
-</body>
+    <div
+      id="resultado"
+      class="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-4xl mx-auto"
+    ></div>
+    <div class="text-center mt-6">
+      <button
+        id="cargar-mas"
+        class="px-6 py-2 bg-slate-700 dark:bg-slate-600 text-white font-semibold rounded-lg hover:bg-slate-800 dark:hover:bg-slate-500 transition-colors"
+      >
+        Cargar más
+      </button>
+    </div>
+    <script src="js/app.js"></script>
+  </body>
 </html>

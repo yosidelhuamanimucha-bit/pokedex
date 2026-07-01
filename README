@@ -1,0 +1,128 @@
+# Pokédex Web
+
+Aplicación web interactiva que permite buscar, explorar y capturar Pokémon consumiendo la [PokéAPI](https://pokeapi.co/), con soporte para modo oscuro, carga progresiva de resultados y manejo robusto de errores.
+
+## Índice
+
+- [Descripción general](#descripción-general)
+- [Características principales](#características-principales)
+- [Tecnologías utilizadas](#tecnologías-utilizadas)
+- [Estructura del proyecto](#estructura-del-proyecto)
+- [Instalación y uso](#instalación-y-uso)
+- [Funcionamiento del código](#funcionamiento-del-código)
+- [Manejo de errores](#manejo-de-errores)
+- [Logros adicionales](#logros-adicionales)
+- [Capturas de pantalla](#capturas-de-pantalla)
+
+## Descripción general
+
+Esta Pokédex permite al usuario:
+
+- Consultar información detallada de cualquier Pokémon por nombre o número.
+- Explorar una colección inicial de Pokémon precargada al abrir la aplicación.
+- "Capturar" Pokémon buscados y agregarlos a su colección personal.
+- Cargar más Pokémon de forma progresiva mediante paginación.
+- Alternar entre modo claro y modo oscuro, con la preferencia guardada localmente.
+
+## Características principales
+
+| Característica | Descripción |
+|---|---|
+| Búsqueda individual | Busca un Pokémon por nombre o ID y muestra sus estadísticas base. |
+| Colección persistente en sesión | Los Pokémon capturados se muestran en una cuadrícula con opción de quitarlos. |
+| Carga progresiva | El botón "Cargar más" trae 12 Pokémon adicionales por página. |
+| Modo oscuro | Se activa con un botón y se recuerda entre sesiones mediante `localStorage`. |
+| Indicador de carga | Spinner animado visible durante cualquier petición a la API. |
+| Manejo de errores | Mensajes claros al usuario si un Pokémon no existe o falla la conexión. |
+| Reintento de búsqueda | Ante un error, el usuario puede reintentar la última búsqueda con un clic. |
+
+## Tecnologías utilizadas
+
+- **HTML5** — estructura semántica de la aplicación.
+- **Tailwind CSS** (vía CDN) — sistema de diseño y estilos responsivos, incluyendo `dark:` para modo oscuro.
+- **JavaScript (ES6+)** — lógica de la aplicación, consumo de API con `fetch`, `async/await` y manipulación del DOM.
+- **PokéAPI** — fuente de datos de todos los Pokémon.
+- **LocalStorage** — persistencia de la preferencia de tema (claro/oscuro).
+
+## Estructura del proyecto
+
+```
+pokedex/
+├── pokedex.html      # Estructura y estilos de la interfaz
+├── pokedex.js         # Lógica de la aplicación
+├── capturas/           # Imágenes de la app en funcionamiento
+└── README.md          # Este documento
+```
+
+## Instalación y uso
+
+1. Clona o descarga este repositorio.
+2. Asegúrate de que `pokedex.html` y `pokedex.js` estén en la misma carpeta.
+3. Abre `pokedex.html` en cualquier navegador moderno (no requiere servidor ni instalación de dependencias).
+4. Escribe el nombre o número de un Pokémon en el buscador y presiona **Buscar** o **Enter**.
+
+## Funcionamiento del código
+
+### 1. Consumo de la API
+
+La función `obtenerPokemon` centraliza toda comunicación con la PokéAPI. Realiza la petición `fetch` y valida la respuesta antes de devolverla:
+
+```js
+async function obtenerPokemon(idONombre) {
+  const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${idONombre}`);
+  if (!response.ok) {
+    throw new Error(`No se encontró "${idONombre}"`);
+  }
+  return response.json();
+}
+```
+
+Si el Pokémon no existe (respuesta 404) o hay un error del servidor, se lanza una excepción con un mensaje descriptivo en lugar de continuar con datos inválidos.
+
+### 2. Adaptación de datos
+
+`adaptarPokemon` transforma la respuesta cruda de la API en un objeto simple y predecible (`nombre`, `imagen`, `tipos`, `stats`), desacoplando el resto de la aplicación del formato específico de la PokéAPI.
+
+### 3. Renderizado de tarjetas
+
+`crearTarjeta` genera dinámicamente el HTML de cada Pokémon, incluyendo insignias de color según su tipo (`colorTipo`). Según el contexto, se le puede agregar un botón para quitarlo de la colección o para capturarlo.
+
+### 4. Búsqueda con retroalimentación visual
+
+`mostrarBusqueda` orquesta el flujo completo de una búsqueda:
+
+1. Muestra el spinner y oculta mensajes previos.
+2. Solicita el Pokémon a la API.
+3. Si tiene éxito, renderiza el resultado con sus estadísticas.
+4. Si falla, muestra un mensaje de error junto a un botón de reintento.
+5. Al finalizar (con éxito o error), oculta el spinner.
+
+### 5. Colección y persistencia en pantalla
+
+`capturar` y `quitarPokemon` gestionan el arreglo `pokedex`, evitando duplicados y volviendo a renderizar la cuadrícula tras cada cambio.
+
+### 6. Paginación
+
+`cargarMas` incrementa un `offset` y solicita el siguiente bloque de 12 Pokémon a la API, agregándolos a la colección existente sin duplicarlos.
+
+### 7. Modo oscuro
+
+Al cargar la página, un script en el `<head>` revisa `localStorage` para aplicar el tema guardado antes de que se pinte el contenido, evitando parpadeos visuales. El botón de tema alterna la clase `dark` en `<html>` y actualiza la preferencia guardada.
+
+## Manejo de errores
+
+La aplicación utiliza bloques `try / catch / finally` en cada operación asíncrona para garantizar una experiencia estable:
+
+- **`try`**: intenta obtener y mostrar los datos.
+- **`catch`**: captura cualquier fallo (Pokémon inexistente, error de red, error del servidor) y comunica un mensaje claro al usuario a través del componente `#mensaje`.
+- **`finally`**: garantiza que el spinner de carga se oculte siempre, sin importar el resultado de la operación.
+
+Esto evita que el usuario se quede con un spinner girando indefinidamente o sin ninguna explicación ante un error.
+
+## Logros adicionales
+
+- **Botón Reintentar**: ante un error de búsqueda, se ofrece un botón que repite automáticamente la última consulta fallida, sin que el usuario deba volver a escribirla.
+- **Spinner animado**: el indicador de carga utiliza la utilidad `animate-spin` de Tailwind CSS para ofrecer una señal visual clara y fluida durante las peticiones a la API.
+- **Documentación con evidencia visual**: este README incluye capturas de pantalla de la aplicación en funcionamiento (ver sección siguiente).
+
+Proyecto desarrollado con fines educativos, consumiendo datos públicos de la [PokéAPI](https://pokeapi.co/).

@@ -1,4 +1,3 @@
-// ── Colores por tipo ──────────────────────────────────────────────────────
 const colorTipo = {
   fire:     "bg-orange-100 text-orange-700",
   grass:    "bg-lime-100 text-lime-700",
@@ -10,26 +9,26 @@ const colorTipo = {
   fairy:    "bg-pink-100 text-pink-600",
 };
 
-// ── Referencias al DOM ────────────────────────────────────────────────────
 const contenedor = document.getElementById("resultado");
 const buscador   = document.getElementById("buscador");
 const boton      = document.getElementById("btn-buscar");
+const spinner    = document.getElementById("spinner");
+const mensaje    = document.getElementById("mensaje");
 
-// ── Estado global ─────────────────────────────────────────────────────────
-let pokedex = [];  // Pokémon capturados
-let offset  = 0;   // para paginación de "cargar más"
+let pokedex = [];
+let offset  = 0;
+let ultimaBusqueda = "";
 
-// ── Funciones de API ──────────────────────────────────────────────────────
-
-// Acepta nombre ("pikachu") o número (25) gracias a que la API soporta ambos
 async function obtenerPokemon(idONombre) {
   const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${idONombre}`);
+
+  if (!response.ok) {                                  // 404, 500, etc.
+    throw new Error(`No se encontró "${idONombre}"`);  // error personalizado
+  }
+
   return response.json();
 }
 
-// ── Funciones de transformación ───────────────────────────────────────────
-
-// Convierte la respuesta cruda de la API a la forma que usamos
 function adaptarPokemon(data) {
   return {
     nombre: data.name,
@@ -39,10 +38,6 @@ function adaptarPokemon(data) {
   };
 }
 
-// ── Funciones de UI ───────────────────────────────────────────────────────
-
-// Crea y devuelve una tarjeta <article> para un Pokémon
-// Si showQuitar=true, agrega el botón "Quitar de Pokédex"
 function crearTarjeta(pokemon, showQuitar = false) {
   const { nombre, imagen, tipos } = pokemon;
 
@@ -56,14 +51,13 @@ function crearTarjeta(pokemon, showQuitar = false) {
     .join("");
 
   const articulo = document.createElement("article");
-  articulo.className = "bg-white rounded-xl shadow p-4 text-center";
+  articulo.className = "bg-white dark:bg-slate-800 rounded-xl shadow p-4 text-center";
   articulo.innerHTML = `
     <img src="${img}" alt="${nombre}" class="w-24 h-24 mx-auto">
-    <h2 class="capitalize font-bold text-slate-800 mt-2">${nombre}</h2>
+    <h2 class="capitalize font-bold text-slate-800 dark:text-slate-100 mt-2">${nombre}</h2>
     <div class="flex gap-1 justify-center mt-2 flex-wrap">${badges}</div>
   `;
 
-  // Logro 2 — botón quitar (solo en tarjetas de la Pokédex)
   if (showQuitar) {
     const btnQuitar = document.createElement("button");
     btnQuitar.textContent = "✕ Quitar";
@@ -75,20 +69,17 @@ function crearTarjeta(pokemon, showQuitar = false) {
   return articulo;
 }
 
-// Limpia el contenedor y pinta la lista recibida
 function render(lista) {
   contenedor.innerHTML = "";
   lista.forEach(function (pokemon) {
-    const tarjeta = crearTarjeta(pokemon, true);  // showQuitar=true en la Pokédex
+    const tarjeta = crearTarjeta(pokemon, true);
     contenedor.appendChild(tarjeta);
   });
 }
 
-// Muestra la tarjeta del resultado de búsqueda con stats y botón capturar
 function mostrarResultado(pokemon) {
-  const tarjeta = crearTarjeta(pokemon);  // sin botón quitar
+  const tarjeta = crearTarjeta(pokemon);
 
-  // Estadísticas
   const stats = document.createElement("div");
   stats.className = "mt-2 text-left text-xs space-y-1";
   stats.innerHTML = pokemon.stats.map(s => `
@@ -99,7 +90,6 @@ function mostrarResultado(pokemon) {
   `).join("");
   tarjeta.appendChild(stats);
 
-  // Botón capturar
   const btnCapturar = document.createElement("button");
   btnCapturar.textContent = "⚡ Capturar";
   btnCapturar.className = "mt-2 w-full bg-yellow-400 font-semibold rounded-lg py-1 hover:bg-yellow-500";
@@ -110,9 +100,6 @@ function mostrarResultado(pokemon) {
   contenedor.appendChild(tarjeta);
 }
 
-// ── Acciones ──────────────────────────────────────────────────────────────
-
-// Agrega un Pokémon a la Pokédex sin duplicar y vuelve a renderizar
 function capturar(pokemon) {
   if (!pokedex.some(p => p.nombre === pokemon.nombre)) {
     pokedex.push(pokemon);
@@ -121,76 +108,92 @@ function capturar(pokemon) {
   buscador.value = "";
 }
 
-// Logro 2 — quita un Pokémon de la Pokédex por nombre y re-renderiza
 function quitarPokemon(nombre) {
   pokedex = pokedex.filter(p => p.nombre !== nombre);
   render(pokedex);
 }
 
-// Logro 1 — busca por nombre o número (la API acepta ambos en la misma ruta)
 async function mostrarBusqueda(query) {
+  ultimaBusqueda = query;
+
+  spinner.classList.remove("hidden");
+  mensaje.classList.add("hidden");
+
   try {
     const data    = await obtenerPokemon(query.toLowerCase().trim());
     const pokemon = adaptarPokemon(data);
     mostrarResultado(pokemon);
-  } catch {
-    contenedor.innerHTML = `<p class="col-span-full text-center text-red-600">No se encontró "${query}".</p>`;
+  } catch (error) {
+    mensaje.innerHTML = `
+      ${error.message}
+      <button id="btn-reintentar" class="ml-2 underline font-semibold hover:text-red-800">Reintentar</button>
+    `;
+    mensaje.classList.remove("hidden");
+
+    document.getElementById("btn-reintentar").addEventListener("click", () => {
+      mostrarBusqueda(ultimaBusqueda);
+    });
+  } finally {
+    spinner.classList.add("hidden");
   }
 }
 
-// Carga más Pokémon desde la API con paginación
 async function cargarMas() {
-  const respuesta = await fetch(`https://pokeapi.co/api/v2/pokemon?limit=12&offset=${offset}`);
-  const lista     = await respuesta.json();
+  spinner.classList.remove("hidden");
+  mensaje.classList.add("hidden");
 
-  const datos = await Promise.all(
-    lista.results.map(item => fetch(item.url).then(r => r.json()))
-  );
+  try {
+    const respuesta = await fetch(`https://pokeapi.co/api/v2/pokemon?limit=12&offset=${offset}`);
+    const lista     = await respuesta.json();
 
-  datos.map(adaptarPokemon).forEach(function (pokemon) {
-    if (!pokedex.some(p => p.nombre === pokemon.nombre)) {
-      pokedex.push(pokemon);
-    }
-  });
+    const datos = await Promise.all(
+      lista.results.map(item => fetch(item.url).then(r => r.json()))
+    );
 
-  offset += 12;
-  render(pokedex);
+    datos.map(adaptarPokemon).forEach(function (pokemon) {
+      if (!pokedex.some(p => p.nombre === pokemon.nombre)) {
+        pokedex.push(pokemon);
+      }
+    });
+
+    offset += 12;
+    render(pokedex);
+  } catch (error) {
+    mensaje.textContent = "No se pudieron cargar más Pokémon.";
+    mensaje.classList.remove("hidden");
+  } finally {
+    spinner.classList.add("hidden");
+  }
 }
 
-// ── Carga inicial ─────────────────────────────────────────────────────────
-
-// Spinner mientras llegan los datos
-contenedor.innerHTML = `
-  <div class="col-span-full flex justify-center py-10">
-    <div class="w-10 h-10 border-4 border-slate-300 border-t-red-500 rounded-full animate-spin"></div>
-  </div>
-`;
-
 async function cargarPokedex() {
-  const nombres = ["bulbasaur", "charmander", "squirtle", "pikachu", "jigglypuff", "gengar"];
-  const datos   = await Promise.all(nombres.map(obtenerPokemon));
-  pokedex       = datos.map(adaptarPokemon);
-  render(pokedex);
+  spinner.classList.remove("hidden");
+  try {
+    const nombres = ["bulbasaur", "charmander", "squirtle", "pikachu", "jigglypuff", "gengar"];
+    const datos   = await Promise.all(nombres.map(obtenerPokemon));
+    pokedex       = datos.map(adaptarPokemon);
+    render(pokedex);
+  } catch (error) {
+    mensaje.textContent = "No se pudo cargar la Pokédex.";
+    mensaje.classList.remove("hidden");
+  } finally {
+    spinner.classList.add("hidden");
+  }
 }
 
 cargarPokedex();
 
-// ── Eventos ───────────────────────────────────────────────────────────────
-
-// Logro 1 — el input acepta nombre ("pikachu") o número ("25")
 boton.addEventListener("click", function () {
   const query = buscador.value.trim();
   if (query !== "") mostrarBusqueda(query);
 });
 
-// Buscar también con Enter
 buscador.addEventListener("keydown", function (event) {
   if (event.key === "Enter") boton.click();
 });
 
-// Cargar más Pokémon
-document.getElementById("cargar-mas").addEventListener("click", cargarMas);                          
-// ── Tema claro / oscuro ───────────────────────────────────────────────────
+document.getElementById("cargar-mas").addEventListener("click", cargarMas);
+
 const btnTema = document.getElementById("btn-tema");
 
 function actualizarBotonTema() {
@@ -201,9 +204,8 @@ function actualizarBotonTema() {
 btnTema.addEventListener("click", function () {
   document.documentElement.classList.toggle("dark");
   const esDark = document.documentElement.classList.contains("dark");
-  localStorage.setItem("tema", esDark ? "oscuro" : "claro");  // recuerda la preferencia
+  localStorage.setItem("tema", esDark ? "oscuro" : "claro");
   actualizarBotonTema();
 });
 
-actualizarBotonTema();  // ajusta el texto del botón al cargar
-articulo.className = "bg-white dark:bg-slate-800 rounded-xl shadow p-4 text-center";
+actualizarBotonTema();
